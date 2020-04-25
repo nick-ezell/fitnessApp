@@ -1,18 +1,17 @@
 // get all workout data from back-end
 
 fetch("/api/workouts/range")
-  .then(response => {
+  .then((response) => {
     return response.json();
   })
-  .then(data => {
+  .then((data) => {
     populateChart(data);
   });
 
+API.getWorkoutsInRange();
 
-API.getWorkoutsInRange()
-
-  function generatePalette() {
-    const arr = [
+function generatePalette() {
+  const arr = [
     "#003f5c",
     "#2f4b7c",
     "#665191",
@@ -28,16 +27,24 @@ API.getWorkoutsInRange()
     "#d45087",
     "#f95d6a",
     "#ff7c43",
-    "ffa600"
-  ]
+    "ffa600",
+  ];
 
   return arr;
-  }
+}
+
 function populateChart(data) {
   let durations = duration(data);
-  let pounds = calculateTotalWeight(data);
+  let totalDurations = totalDuration(data);
+  let pounds = calculateWeight(data);
+  let totalPounds = calculateTotalWeight(data);
   let workouts = workoutNames(data);
+  let days = workoutDays(data);
   const colors = generatePalette();
+
+  document.querySelector("h2").textContent = `(${days.all[0]} to ${
+    days.all[days.all.length - 1]
+  })`;
 
   let line = document.querySelector("#canvas").getContext("2d");
   let bar = document.querySelector("#canvas2").getContext("2d");
@@ -47,74 +54,63 @@ function populateChart(data) {
   let lineChart = new Chart(line, {
     type: "line",
     data: {
-      labels: [
-        "Sunday",
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday"
-      ],
+      labels: days.all,
       datasets: [
         {
           label: "Workout Duration In Minutes",
           backgroundColor: "red",
           borderColor: "red",
-          data: durations,
-          fill: false
-        }
-      ]
+          data: totalDurations,
+          fill: false,
+        },
+      ],
     },
     options: {
       responsive: true,
       title: {
-        display: true
+        display: true,
+        text: "Workout Durations",
       },
       scales: {
         xAxes: [
           {
             display: true,
             scaleLabel: {
-              display: true
-            }
-          }
+              display: true,
+            },
+          },
         ],
         yAxes: [
           {
             display: true,
             scaleLabel: {
-              display: true
-            }
-          }
-        ]
-      }
-    }
+              display: true,
+            },
+          },
+        ],
+      },
+    },
   });
 
   let barChart = new Chart(bar, {
     type: "bar",
     data: {
-      labels: [
-        "Sunday",
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday",
-      ],
+      labels: days.resistance,
       datasets: [
         {
           label: "Pounds",
-          data: pounds,
+          data: totalPounds,
           backgroundColor: [
             "rgba(255, 99, 132, 0.2)",
             "rgba(54, 162, 235, 0.2)",
             "rgba(255, 206, 86, 0.2)",
             "rgba(75, 192, 192, 0.2)",
             "rgba(153, 102, 255, 0.2)",
-            "rgba(255, 159, 64, 0.2)"
+            "rgba(255, 159, 64, 0.2)",
+            "rgba(255, 99, 132, 0.2)",
+            "rgba(54, 162, 235, 0.2)",
+            "rgba(255, 206, 86, 0.2)",
+            "rgba(75, 192, 192, 0.2)",
           ],
           borderColor: [
             "rgba(255, 99, 132, 1)",
@@ -122,75 +118,81 @@ function populateChart(data) {
             "rgba(255, 206, 86, 1)",
             "rgba(75, 192, 192, 1)",
             "rgba(153, 102, 255, 1)",
-            "rgba(255, 159, 64, 1)"
+            "rgba(255, 159, 64, 1)",
+            "rgba(255, 99, 132, 1)",
+            "rgba(54, 162, 235, 1)",
+            "rgba(255, 206, 86, 1)",
+            "rgba(75, 192, 192, 1)",
           ],
-          borderWidth: 1
-        }
-      ]
+          borderWidth: 1,
+        },
+      ],
     },
     options: {
       title: {
         display: true,
-        text: "Pounds Lifted"
+        text: "Resistance Workout Weight Lifted",
       },
       scales: {
         yAxes: [
           {
             ticks: {
-              beginAtZero: true
-            }
-          }
-        ]
-      }
-    }
+              beginAtZero: true,
+            },
+          },
+        ],
+      },
+    },
   });
 
   let pieChart = new Chart(pie, {
     type: "pie",
     data: {
-      labels: workouts,
+      labels: workouts.all,
       datasets: [
         {
-          label: "Excercises Performed",
+          label: "Exercises Performed",
           backgroundColor: colors,
-          data: durations
-        }
-      ]
+          data: durations,
+        },
+      ],
     },
     options: {
       title: {
         display: true,
-        text: "Excercises Performed"
-      }
-    }
+        text:
+          "Duration in Minutes of Each Exercise Relative to Total Workout Time",
+      },
+    },
   });
 
   let donutChart = new Chart(pie2, {
     type: "doughnut",
     data: {
-      labels: workouts,
+      labels: workouts.resistance,
       datasets: [
         {
-          label: "Excercises Performed",
+          label: "Exercises Performed",
           backgroundColor: colors,
-          data: pounds
-        }
-      ]
+          data: pounds,
+        },
+      ],
     },
     options: {
       title: {
         display: true,
-        text: "Excercises Performed"
-      }
-    }
+        text:
+          "Weight in Pounds of Each Resistance Exercise Relative to Total Weight Lifted",
+      },
+    },
   });
 }
 
 function duration(data) {
   let durations = [];
 
-  data.forEach(workout => {
-    workout.exercises.forEach(exercise => {
+  data.forEach((workout) => {
+    workout.exercises.forEach((exercise) => {
       durations.push(exercise.duration);
     });
   });
@@ -198,26 +200,82 @@ function duration(data) {
   return durations;
 }
 
-function calculateTotalWeight(data) {
-  let total = [];
+function totalDuration(data) {
+  let totalDurations = [];
 
-  data.forEach(workout => {
-    workout.exercises.forEach(exercise => {
-      total.push(exercise.weight);
+  data.forEach((workout) => {
+    totalDurations.push(workout.totalDuration);
+  });
+
+  return totalDurations;
+}
+
+function calculateWeight(data) {
+  let pounds = [];
+
+  data.forEach((workout) => {
+    workout.exercises.forEach((exercise) => {
+      if (exercise.type === "resistance") {
+        pounds.push(exercise.weight);
+      }
     });
   });
 
-  return total;
+  return pounds;
+}
+
+function calculateTotalWeight(data) {
+  let totalPounds = [];
+
+  data.forEach((workout) => {
+    let workoutPounds = 0;
+    workout.exercises.forEach((exercise) => {
+      if (exercise.type === "resistance") {
+        workoutPounds += exercise.weight;
+      }
+    });
+    if (workoutPounds !== 0) {
+      totalPounds.push(workoutPounds);
+    }
+  });
+
+  return totalPounds;
 }
 
 function workoutNames(data) {
-  let workouts = [];
+  let workouts = {
+    all: [],
+    resistance: [],
+  };
 
-  data.forEach(workout => {
-    workout.exercises.forEach(exercise => {
-      workouts.push(exercise.name);
+  data.forEach((workout) => {
+    workout.exercises.forEach((exercise) => {
+      workouts.all.push(exercise.name);
+      if (exercise.type === "resistance") {
+        workouts.resistance.push(exercise.name);
+      }
     });
   });
-  
+
   return workouts;
+}
+
+function workoutDays(data) {
+  let days = {
+    all: [],
+    resistance: [],
+  };
+
+  data.forEach((workout) => {
+    days.all.push(moment(workout.day).format("ddd M/D, h:mm A"));
+    let exercises = workout.exercises;
+    for (let i = 0; i < exercises.length; i++) {
+      if (exercises[i].type === "resistance") {
+        days.resistance.push(moment(workout.day).format("ddd M/D, h:mm A"));
+        break;
+      }
+    }
+  });
+
+  return days;
 }

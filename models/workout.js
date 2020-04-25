@@ -2,20 +2,24 @@ const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
 const WorkoutSchema = new Schema({
-  exercises: [
-    {
-      type: { type: String },
-      name: { type: String },
-      duration: { type: Number },
-      weight: { type: Number },
-      reps: { type: Number },
-      sets: { type: Number },
-    },
-  ],
-
   day: {
     type: Date,
     default: Date.now,
+  },
+
+  exercises: Array,
+
+  totalDuration: {
+    type: Number,
+    default: function () {
+      let total = 0;
+      if (this.exercises) {
+        this.exercises.forEach((exercise) => {
+          total += exercise.duration;
+        });
+      }
+      return total;
+    },
   },
 });
 

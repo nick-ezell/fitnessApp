@@ -10,46 +10,75 @@ const db = require("./models");
 const app = express();
 
 app.use(logger("dev"));
-
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-
 app.use(express.static("public"));
 
 mongoose.connect(process.env.MONGODB_URI || "mongodb://localhost/workout", {
   useNewUrlParser: true,
 });
 
-//HTML routes
-
-app.get("/stats", (req, res) => {
-  res.sendFile(path.join(__dirname, "/public/stats.html"));
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
 app.get("/exercise", (req, res) => {
-  res.sendFile(path.join(__dirname, "/public/exercise.html"));
+  res.sendFile(path.join(__dirname, "public", "exercise.html"));
 });
 
-//API routes
+app.get("/stats", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "stats.html"));
+});
 
 app.get("/api/workouts", (req, res) => {
   db.Workout.find({})
-    .then((dbWorkout) => {
-      res.json(dbWorkout);
+    .then((workouts) => {
+      res.json(workouts);
     })
     .catch((err) => {
       res.json(err);
     });
 });
 
-app.put("/api/workouts/:id", ({ body, params }, res) => {
-  db.Workout.findByIdAndUpdate(
-    params.id,
-    { $push: { exercises: body } },
-    { new: true, runValidators: true }
+app.put("/api/workouts/:id", (req, res) => {
+  db.Workout.findOneAndUpdate(
+    {
+      _id: mongoose.Types.ObjectId(req.params.id),
+    },
+    {
+      $push: {
+        exercises: req.body,
+      },
+      $inc: {
+        totalDuration: req.body.duration,
+      },
+    },
+    {
+      new: true,
+    }
   )
-    .then((dbWorkout) => {
-      res.json(dbWorkout);
+    .then((updatedWorkout) => {
+      res.json(updatedWorkout);
+    })
+    .catch((err) => {
+      res.json(err);
+    });
+});
+
+app.get("/api/workouts/range", (req, res) => {
+  db.Workout.find({})
+    .then((workouts) => {
+      let workoutsInRange = [];
+      let max = 10;
+      let count = workouts.length;
+      if (count > max) {
+        for (let i = count - max; i < count; i++) {
+          workoutsInRange.push(workouts[i]);
+        }
+        res.json(workoutsInRange);
+      } else {
+        res.json(workouts);
+      }
     })
     .catch((err) => {
       res.json(err);
@@ -58,25 +87,14 @@ app.put("/api/workouts/:id", ({ body, params }, res) => {
 
 app.post("/api/workouts", (req, res) => {
   db.Workout.create(req.body)
-    .then((dbWorkout) => {
-      res.json(dbWorkout);
-      console.log(req.body);
+    .then((newWorkout) => {
+      res.json(newWorkout);
     })
-    .catch((error) => {
-      res.json(error);
-    });
-});
-
-app.get("/api/workouts/range", (req, res) => {
-  db.Workout.find({})
-    .then((dbWorkout) => {
-      res.json(dbWorkout);
-    })
-    .catch((error) => {
-      res.json(error);
+    .catch((err) => {
+      res.json(err);
     });
 });
 
 app.listen(PORT, () => {
-  console.log(`App running on port: localhost:${PORT}!`);
+  console.log(`App running on port ${PORT}!`);
 });
